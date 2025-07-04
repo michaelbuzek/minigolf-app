@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Minigolf">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/icon-192.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minigolf Score App</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    input, button, select { padding: 0.5rem; margin: 0.3rem 0; width: 100%; }
+    .player-inputs, .score-table { margin-top: 1rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    .numpad-popup {
+      position: absolute;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.3rem;
+      background: #e0ffe0;
+      padding: 0.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    .numpad-popup button, .numpad-popup input[type="number"] {
+      font-size: 1.2rem;
+      padding: 0.8rem;
+      background-color: #a8e6a3;
+      border: none;
+      border-radius: 4px;
+    }
+    .numpad-popup input[type="number"] {
+      grid-column: span 2;
+      width: calc(100% - 1rem);
+      margin: 0.3rem auto;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Minigolf Spiel starten</h2>
+  <div id="setup">
+    <label>Platz:</label><input type="text" id="course" value="Bülach">
+    <label>Datum:</label><input type="date" id="date">
+    <label>Tracks (Anzahl Bahnen):</label><input type="number" id="trackCount" value="18" min="1" max="36">
+    <label>Spieleranzahl:</label><input type="number" id="playerCount" min="1" max="6">
+    <div id="playerNames" class="player-inputs"></div>
+    <button onclick="startGame()">Enter</button>
+  </div>
+
+  <div id="game" style="display:none">
+    <h3 id="gameTitle"></h3>
+    <table id="scoreTable" class="score-table"></table>
+    <button onclick="resetGame()">Neues Spiel</button>
+    <button onclick="endGame()">Spiel Ende</button>
+  </div>
+
+  <div id="numpad" class="numpad-popup" style="display:none"></div>
+
+  <script>
+    const playerNamesDiv = document.getElementById('playerNames');
+    const numpad = document.getElementById('numpad');
+    let activeInput = null;
+
+    document.getElementById('playerCount').addEventListener('input', function() {
+      const count = parseInt(this.value);
+      playerNamesDiv.innerHTML = '';
+      for (let i = 1; i <= count; i++) {
+        const input = document.createElement('input');
+        input.placeholder = `Spieler ${i}`;
+        input.id = `player-${i}`;
+        playerNamesDiv.appendChild(input);
+      }
+    });
+
+    function startGame() {
+      const course = document.getElementById('course').value;
+      const date = document.getElementById('date').value;
+      const playerCount = parseInt(document.getElementById('playerCount').value);
+      const playerNames = [];
+      for (let i = 1; i <= playerCount; i++) {
+        const name = document.getElementById(`player-${i}`).value || `Spieler ${i}`;
+        playerNames.push(name);
+      }
+
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      document.getElementById('gameTitle').innerText = `${course} – ${playerNames.join(', ')}`;
+
+      const table = document.getElementById('scoreTable');
+      table.innerHTML = '';
+      const header = document.createElement('tr');
+      header.innerHTML = '<th>Track</th>' + playerNames.map(name => `<th>${name}</th>`).join('');
+      table.appendChild(header);
+
+      const trackCount = parseInt(document.getElementById('trackCount').value);
+      for (let i = 1; i <= trackCount; i++) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>Track ${i}</td>` + playerNames.map((_, idx) => `<td><input data-player="${idx}" data-track="${i}" onfocus="openNumpad(event, this)"></td>`).join('');
+        table.appendChild(row);
+      }
+
+      const totalRow = document.createElement('tr');
+      totalRow.innerHTML = '<td>Total:</td>' + playerNames.map(() => `<td id="total"></td>`).join('');
+      table.appendChild(totalRow);
+    }
+
+    function resetGame() {
+      location.reload();
+    }
+
+    function endGame() {
+      const course = document.getElementById('course').value;
+      const date = document.getElementById('date').value;
+      const trackCount = parseInt(document.getElementById('trackCount')?.value || "18");
+      const table = document.getElementById('scoreTable');
+      const players = Array.from(table.rows[0].cells).slice(1).map(cell => cell.innerText);
+      const scores = {};
+
+      players.forEach((player, index) => {
+        scores[player] = [];
+        for (let i = 1; i <= trackCount; i++) {
+          const val = parseInt(table.rows[i].cells[index + 1].querySelector('input').value);
+          scores[player].push(isNaN(val) ? null : val);
+        }
+      });
+
+      const payload = {
+        platz: course,
+        datum: date,
+        tracks: trackCount,
+        players: JSON.stringify(players),
+        scores: JSON.stringify(scores)
+      };
+
+      fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (response.ok) {
+          alert('Spiel gespeichert!');
+        } else {
+          alert('Fehler beim Speichern.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Verbindung fehlgeschlagen.');
+      });
+    }
+
+    function openNumpad(event, input) {
+      activeInput = input;
+      const rect = input.getBoundingClientRect();
+      numpad.style.top = `${rect.bottom + window.scrollY + 10}px`;
+      numpad.style.left = `${rect.left + window.scrollX}px`;
+      numpad.innerHTML = '';
+      numpad.style.display = 'grid';
+
+      const nums = [...Array(10).keys()].map(i => i + 1);
+      nums.forEach(num => {
+        const btn = document.createElement('button');
+        btn.innerText = num;
+        btn.onclick = () => {
+          activeInput.value = num;
+          numpad.style.display = 'none';
+          calculateTotals();
+        };
+        numpad.appendChild(btn);
+      });
+
+      const manualInput = document.createElement('input');
+      manualInput.type = 'number';
+      manualInput.placeholder = 'manuell';
+      manualInput.value = '';
+      manualInput.oninput = () => {
+        activeInput.value = manualInput.value;
+      };
+      numpad.appendChild(manualInput);
+
+      const enterBtn = document.createElement('button');
+      enterBtn.innerText = 'Enter';
+      enterBtn.onclick = () => {
+        const val = parseInt(manualInput.value);
+        if (!isNaN(val)) {
+          activeInput.value = val;
+          numpad.style.display = 'none';
+          calculateTotals();
+        }
+      };
+      numpad.appendChild(enterBtn);
+
+      const clear = document.createElement('button');
+      clear.innerText = 'Löschen';
+      clear.onclick = () => {
+        activeInput.value = '';
+        numpad.style.display = 'none';
+        calculateTotals();
+      };
+      numpad.appendChild(clear);
+    }
+
+    function calculateTotals() {
+      const table = document.getElementById('scoreTable');
+      const players = table.rows[0].cells.length - 1;
+      const totals = Array(players).fill(0);
+      const trackRows = table.rows.length - 2; // exclude header and total row
+
+      for (let i = 1; i <= trackRows; i++) {
+        const row = table.rows[i];
+        for (let j = 1; j <= players; j++) {
+          const val = parseInt(row.cells[j].querySelector('input').value);
+          if (!isNaN(val)) totals[j - 1] += val;
+        }
+      }
+
+      const totalRow = table.rows[table.rows.length - 1];
+      for (let j = 1; j <= players; j++) {
+        totalRow.cells[j].innerText = totals[j - 1];
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!numpad.contains(e.target) && e.target !== activeInput) {
+        numpad.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
