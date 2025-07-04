@@ -30,30 +30,6 @@
       padding: 0.3rem;
       text-align: center;
     }
-    .numpad-popup {
-      position: absolute;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.2rem;
-      background: #e0ffe0;
-      padding: 0.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      z-index: 1000;
-    }
-    .numpad-popup button, .numpad-popup input[type="number"] {
-      font-size: 1rem;
-      padding: 0.6rem;
-      background-color: #a8e6a3;
-      border: none;
-      border-radius: 4px;
-    }
-    .numpad-popup input[type="number"] {
-      grid-column: span 2;
-      width: calc(100% - 1rem);
-      margin: 0.3rem auto;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -72,18 +48,16 @@
     <table id="scoreTable" class="score-table"></table>
     <button onclick="resetGame()">Neues Spiel</button>
     <button onclick="endGame()">Spiel Ende</button>
+    <a href="/history">Zur Historie</a>
   </div>
 
-  <div id="numpad" class="numpad-popup" style="display:none"></div>
-
   <script>
-    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     const playerNamesDiv = document.getElementById('playerNames');
-    const numpad = document.getElementById('numpad');
-    let activeInput = null;
+    let playerCount = 0;
 
     document.getElementById('playerCount').addEventListener('input', function () {
       const count = parseInt(this.value);
+      playerCount = count;
       playerNamesDiv.innerHTML = '';
       for (let i = 1; i <= count; i++) {
         const input = document.createElement('input');
@@ -96,7 +70,7 @@
     function startGame() {
       const course = document.getElementById('course').value;
       const date = document.getElementById('date').value;
-      const playerCount = parseInt(document.getElementById('playerCount').value);
+      const trackCount = parseInt(document.getElementById('trackCount').value);
       const playerNames = [];
       for (let i = 1; i <= playerCount; i++) {
         const name = document.getElementById(`player-${i}`).value || `Spieler ${i}`;
@@ -113,15 +87,14 @@
       header.innerHTML = '<th>Track</th>' + playerNames.map(name => `<th>${name}</th>`).join('');
       table.appendChild(header);
 
-      const trackCount = parseInt(document.getElementById('trackCount').value);
       for (let i = 1; i <= trackCount; i++) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td>Track ${i}</td>` + playerNames.map((_, idx) => `<td><input type="text" inputmode="numeric" pattern="[0-9]*" data-player="${idx}" data-track="${i}" onfocus="openNumpad(event, this)"></td>`).join('');
+        row.innerHTML = `<td>Track ${i}</td>` + playerNames.map((_, idx) => `<td><input type="text" inputmode="numeric" pattern="[0-9]*" data-player="${idx}" data-track="${i}" oninput="calculateTotals()"></td>`).join('');
         table.appendChild(row);
       }
 
       const totalRow = document.createElement('tr');
-      totalRow.innerHTML = '<td>Total:</td>' + playerNames.map(() => `<td id="total"></td>`).join('');
+      totalRow.innerHTML = '<td>Total:</td>' + playerNames.map(() => `<td class="total"></td>`).join('');
       table.appendChild(totalRow);
     }
 
@@ -130,87 +103,55 @@
     }
 
     function endGame() {
-      alert("Spielende – hier könnten die Daten gespeichert werden.");
-    }
+      const course = document.getElementById('course').value;
+      const date = document.getElementById('date').value;
+      const trackCount = parseInt(document.getElementById('trackCount').value);
+      const table = document.getElementById('scoreTable');
 
-    function openNumpad(event, input) {
-      activeInput = input;
-      if (isMobile) return; // kein Numpad auf Mobile
+      const players = Array.from(table.rows[0].cells).slice(1).map(cell => cell.innerText);
+      const data = {
+        place: course,
+        date: date,
+        track_count: trackCount,
+        players: players.map((name, idx) => {
+          const scores = {};
+          for (let i = 1; i <= trackCount; i++) {
+            const val = table.rows[i].cells[idx + 1].querySelector('input').value;
+            scores[i] = val || 0;
+          }
+          return { name, scores };
+        })
+      };
 
-      const rect = input.getBoundingClientRect();
-      numpad.style.top = `${rect.bottom + window.scrollY + 10}px`;
-      numpad.style.left = `${rect.left + window.scrollX}px`;
-      numpad.innerHTML = '';
-      numpad.style.display = 'grid';
-
-      const nums = [...Array(10).keys()].map(i => i + 1);
-      nums.forEach(num => {
-        const btn = document.createElement('button');
-        btn.innerText = num;
-        btn.onclick = () => {
-          activeInput.value = num;
-          numpad.style.display = 'none';
-          calculateTotals();
-        };
-        numpad.appendChild(btn);
+      fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(res => {
+        if (res.ok) alert("Spiel gespeichert!");
+        else alert("Fehler beim Speichern.");
       });
-
-      const manualInput = document.createElement('input');
-      manualInput.type = 'number';
-      manualInput.placeholder = 'manuell';
-      manualInput.value = '';
-      manualInput.oninput = () => {
-        activeInput.value = manualInput.value;
-      };
-      numpad.appendChild(manualInput);
-
-      const enterBtn = document.createElement('button');
-      enterBtn.innerText = 'Enter';
-      enterBtn.onclick = () => {
-        const val = parseInt(manualInput.value);
-        if (!isNaN(val)) {
-          activeInput.value = val;
-          numpad.style.display = 'none';
-          calculateTotals();
-        }
-      };
-      numpad.appendChild(enterBtn);
-
-      const clear = document.createElement('button');
-      clear.innerText = 'Löschen';
-      clear.onclick = () => {
-        activeInput.value = '';
-        numpad.style.display = 'none';
-        calculateTotals();
-      };
-      numpad.appendChild(clear);
     }
 
     function calculateTotals() {
       const table = document.getElementById('scoreTable');
-      const players = table.rows[0].cells.length - 1;
-      const totals = Array(players).fill(0);
+      const playerCols = table.rows[0].cells.length - 1;
       const trackRows = table.rows.length - 2;
+      const totals = Array(playerCols).fill(0);
 
       for (let i = 1; i <= trackRows; i++) {
         const row = table.rows[i];
-        for (let j = 1; j <= players; j++) {
+        for (let j = 1; j <= playerCols; j++) {
           const val = parseInt(row.cells[j].querySelector('input').value);
           if (!isNaN(val)) totals[j - 1] += val;
         }
       }
 
       const totalRow = table.rows[table.rows.length - 1];
-      for (let j = 1; j <= players; j++) {
+      for (let j = 1; j <= playerCols; j++) {
         totalRow.cells[j].innerText = totals[j - 1];
       }
     }
-
-    document.addEventListener('click', function (e) {
-      if (!numpad.contains(e.target) && e.target !== activeInput) {
-        numpad.style.display = 'none';
-      }
-    });
   </script>
 </body>
 </html>
