@@ -77,6 +77,7 @@
   <div id="numpad" class="numpad-popup" style="display:none"></div>
 
   <script>
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     const playerNamesDiv = document.getElementById('playerNames');
     const numpad = document.getElementById('numpad');
     let activeInput = null;
@@ -134,6 +135,8 @@
 
     function openNumpad(event, input) {
       activeInput = input;
+      if (isMobile) return; // kein Numpad auf Mobile
+
       const rect = input.getBoundingClientRect();
       numpad.style.top = `${rect.bottom + window.scrollY + 10}px`;
       numpad.style.left = `${rect.left + window.scrollX}px`;
