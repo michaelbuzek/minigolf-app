@@ -67,58 +67,44 @@
   </form>
 
   <script>
-    const playerCountInput = document.getElementById("player-count");
-    const playersContainer = document.getElementById("players");
-
-    playerCountInput.addEventListener("input", () => {
-      const count = parseInt(playerCountInput.value);
-      playersContainer.innerHTML = "";
-      if (!isNaN(count) && count > 0) {
-        for (let i = 0; i < count; i++) {
-          const label = document.createElement("label");
-          label.textContent = `Spieler ${i + 1} Name:`;
-          const input = document.createElement("input");
-          input.type = "text";
-          input.name = `player_${i}`;
-          input.required = true;
-          playersContainer.appendChild(label);
-          playersContainer.appendChild(input);
-        }
-      }
-    });
-
-    document.getElementById("start-form").addEventListener("submit", async (e) => {
+    document.getElementById('start-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-
-      const form = e.target;
-      const place = form.place.value;
-      const date = form.date.value;
-      const track_count = parseInt(form.tracks.value);
-      const player_count = parseInt(form.players.value);
-
+  
+      const place = e.target.place.value;
+      const date = e.target.date.value;
+      const track_count = parseInt(e.target.tracks.value);
+      const playerCount = parseInt(e.target.players.value);
+  
       const players = [];
-      for (let i = 0; i < player_count; i++) {
-        const name = form[`player_${i}`].value;
+      for (let i = 0; i < playerCount; i++) {
+        const name = e.target[`player_${i}`].value;
         const scores = {};
         for (let j = 1; j <= track_count; j++) {
-          scores[j] = 0;  // Standardwert
+          scores[j] = 0;
         }
         players.push({ name, scores });
       }
-
-      const response = await fetch("/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ place, date, track_count, players })
+  
+      const data = { place, date, track_count, players };
+  
+      const response = await fetch('/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
       });
-
+  
       const result = await response.json();
-      if (result.status === "success") {
-        window.location.href = result.redirect_url;
+  
+      if (result.status === 'success') {
+        const gameId = result.game_id;  // <-- korrekt extrahieren
+        window.location.href = `/score/${gameId}`;
       } else {
-        alert("Fehler beim Speichern: " + result.message);
+        alert('Fehler beim Speichern: ' + result.message);
       }
     });
   </script>
+  
 </body>
 </html>
