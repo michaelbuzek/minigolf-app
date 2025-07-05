@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Game, Player, Score
 import os
+import traceback
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -16,20 +17,30 @@ def index():
 
 @app.route("/save", methods=["POST"])
 def save():
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    game = Game(date=data['date'], place=data['place'], track_count=data['track_count'])
-    db.session.add(game)
+        game = Game(date=data['date'], place=data['place'], track_count=int(data['track_count']))
+        db.session.add(game)
 
-    for idx, player in enumerate(data['players']):
-        p = Player(name=player['name'], order=idx, game=game)
-        db.session.add(p)
-        for track, value in player['scores'].items():
-            s = Score(track_number=int(track), value=int(value), player=p)
-            db.session.add(s)
+        for idx, player in enumerate(data['players']):
+            p = Player(name=player['name'], order=idx, game=game)
+            db.session.add(p)
+            for track, value in player['scores'].items():
+                try:
+                    score_value = int(value)
+                except (ValueError, TypeError):
+                    score_value = 0
+                s = Score(track_number=int(track), value=score_value, player=p)
+                db.session.add(s)
 
-    db.session.commit()
-    return {"status": "success"}
+        db.session.commit()
+        return {"status": "success"}
+
+    except Exception as e:
+        print("💥 Fehler beim Speichern:", e)
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}, 500
 
 @app.route("/history")
 def history():
