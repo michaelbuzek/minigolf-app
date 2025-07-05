@@ -1,22 +1,3 @@
-
-from flask import Flask, render_template, request
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/save", methods=["POST"])
-def save():
-    data = request.get_json()
-    print("Eingehende Spieldaten:", data)
-    return {"status": "success"}
-
-if __name__ == "__main__":
-    app.run(debug=True)
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Game, Player, Score
@@ -28,10 +9,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'ga
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
-
-@app.before_first_request
-def create_tables():
-    db.create_all()
 
 @app.route("/")
 def index():
@@ -60,4 +37,6 @@ def history():
     return render_template("history.html", games=games)
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
