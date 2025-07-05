@@ -47,6 +47,11 @@ def history():
     games = Game.query.order_by(Game.id.desc()).all()
     return render_template("history.html", games=games)
 
+@app.route("/game/<int:game_id>")
+def game_detail(game_id):
+    game = Game.query.get_or_404(game_id)
+    return render_template("game_detail.html", game=game)
+
 @app.route("/initdb")
 def initdb():
     with app.app_context():
