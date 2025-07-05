@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Game, Player, Score
 import os
@@ -17,38 +17,55 @@ def index():
 
 @app.route("/score_input", methods=["POST"])
 def score_input():
-    place = request.form["place"]
-    date = request.form["date"]
-    track_count = int(request.form["track_count"])
-    player_count = int(request.form["player_count"])
-    return render_template("score_input.html", place=place, date=date, track_count=track_count, player_count=player_count)
+    try:
+        place = request.form["place"]
+        date = request.form["date"]
+        track_count = int(request.form["tracks"])
+        player_count = int(request.form["players"])
+
+        players = []
+        for i in range(player_count):
+            name = request.form.get(f"player_{i}")
+            if name:
+                players.append(name)
+
+        return render_template("score_input.html", place=place, date=date, track_count=track_count, players=players)
+    except Exception as e:
+        print("💥 Fehler bei der Weiterleitung zur Score-Eingabe:", e)
+        traceback.print_exc()
+        return "Fehler beim Vorbereiten des Score-Inputs", 500
 
 @app.route("/save", methods=["POST"])
 def save():
     try:
-        data = request.get_json()
+        place = request.form["place"]
+        date = request.form["date"]
+        track_count = int(request.form["track_count"])
+        player_count = int(request.form["player_count"])
 
-        game = Game(date=data['date'], place=data['place'], track_count=int(data['track_count']))
+        game = Game(date=date, place=place, track_count=track_count)
         db.session.add(game)
 
-        for idx, player in enumerate(data['players']):
-            p = Player(name=player['name'], order=idx, game=game)
-            db.session.add(p)
-            for track, value in player['scores'].items():
+        for i in range(player_count):
+            name = request.form[f"player_{i}"]
+            player = Player(name=name, order=i, game=game)
+            db.session.add(player)
+
+            for t in range(1, track_count + 1):
+                value = request.form.get(f"score_{i}_{t}", "0")
                 try:
-                    score_value = int(value)
-                except (ValueError, TypeError):
-                    score_value = 0
-                s = Score(track_number=int(track), value=score_value, player=p)
-                db.session.add(s)
+                    val = int(value)
+                except ValueError:
+                    val = 0
+                score = Score(track_number=t, value=val, player=player)
+                db.session.add(score)
 
         db.session.commit()
-        return {"status": "success"}
-
+        return redirect("/history")
     except Exception as e:
         print("💥 Fehler beim Speichern:", e)
         traceback.print_exc()
-        return {"status": "error", "message": str(e)}, 500
+        return "Fehler beim Speichern", 500
 
 @app.route("/history")
 def history():
@@ -66,7 +83,8 @@ def initdb():
         db.create_all()
     return "✅ Datenbank erstellt"
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
