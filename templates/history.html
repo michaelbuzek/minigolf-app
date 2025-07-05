@@ -8,9 +8,33 @@
     h2 { margin-bottom: 1rem; }
     .game { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
     .game a { text-decoration: none; color: #333; font-weight: bold; }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+
+    .nav a {
+      text-decoration: none;
+      color: #000;
+    }
+
+    .nav a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
+
+  <div class="nav">
+    <a href="/">🏠 Home</a>
+    <a href="/">➕ Neues Spiel</a>
+    <a href="/history">📜 History</a>
+  </div>
+
   <h2>Vergangene Spiele</h2>
 
   {% if games %}
@@ -25,5 +49,6 @@
   {% else %}
     <p>Keine gespeicherten Spiele gefunden.</p>
   {% endif %}
+
 </body>
 </html>
