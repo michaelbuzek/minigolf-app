@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Details zum Spiel</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    h2 { margin-bottom: 1rem; }
+    .meta { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Minigolf Spiel – Details</h2>
+
+  <div class="meta">
+    <p><strong>📍 Ort:</strong> {{ game.place }}</p>
+    <p><strong>📅 Datum:</strong> {{ game.date }}</p>
+    <p><strong>🎯 Bahnen:</strong> {{ game.track_count }}</p>
+  </div>
+
+  <table>
+    <tr>
+      <th>Track</th>
+      {% for player in game.players %}
+        <th>{{ player.name }}</th>
+      {% endfor %}
+    </tr>
+    {% for track in range(1, game.track_count + 1) %}
+      <tr>
+        <td>{{ track }}</td>
+        {% for player in game.players %}
+          <td>
+            {% set val = namespace(score=0) %}
+            {% for score in player.scores %}
+              {% if score.track_number == track %}
+                {% set val.score = score.value %}
+              {% endif %}
+            {% endfor %}
+            {{ val.score }}
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+
+    <tr>
+      <td><strong>Total</strong></td>
+      {% for player in game.players %}
+        <td><strong>{{ player.scores | sum(attribute='value') }}</strong></td>
+      {% endfor %}
+    </tr>
+  </table>
+
+  <p><a href="/history">⬅ Zurück zur History</a></p>
+</body>
+</html>
