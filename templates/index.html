@@ -2,156 +2,132 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Minigolf Score App</title>
-  <link rel="manifest" href="/static/manifest.json">
-  <link rel="apple-touch-icon" href="/static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Minigolf">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Minigolf Spiel starten</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; margin: 0; }
-    input, button, select {
-      padding: 0.4rem;
-      margin: 0.2rem 0;
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    nav {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    nav a {
+      text-decoration: none;
+      color: black;
+      font-weight: bold;
+    }
+    nav a:hover {
+      color: darkorange;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    form {
+      max-width: 600px;
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
       font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
     }
-    .player-inputs, .score-table { margin-top: 1rem; }
-    table {
-      border-collapse: collapse;
-      width: 100%;
+    .players-inputs {
       margin-top: 1rem;
-      font-size: 0.9rem;
     }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.3rem;
-      text-align: center;
+    .players-inputs label {
+      display: block;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h2>Minigolf Spiel starten</h2>
-  <div id="setup">
-    <label>Platz:</label><input type="text" id="course" value="Bülach">
-    <label>Datum:</label><input type="date" id="date">
-    <label>Tracks (Anzahl Bahnen):</label><input type="number" id="trackCount" value="18" min="1" max="36">
-    <label>Spieleranzahl:</label><input type="number" id="playerCount" min="1" max="6">
-    <div id="playerNames" class="player-inputs"></div>
-    <button onclick="startGame()">Enter</button>
-  </div>
+  <nav>
+    <a href="/">🏠 Home</a>
+    <a href="/">➕ Neues Spiel</a>
+    <a href="/history">📜 History</a>
+  </nav>
 
-  <div id="game" style="display:none">
-    <h3 id="gameTitle"></h3>
-    <table id="scoreTable" class="score-table"></table>
-    <button onclick="resetGame()">Neues Spiel</button>
-    <button onclick="endGame()">Spiel Ende</button>
-    <a href="/history">Zur Historie</a>
-  </div>
+  <h1>Minigolf Spiel starten</h1>
+
+  <form id="start-form">
+    <label>Platz:</label>
+    <input type="text" name="place" value="Bülach">
+
+    <label>Datum:</label>
+    <input type="date" name="date">
+
+    <label>Tracks (Anzahl Bahnen):</label>
+    <input type="number" name="tracks" value="18">
+
+    <label>Spieleranzahl:</label>
+    <input type="number" id="player-count" name="players">
+
+    <div class="players-inputs" id="players"></div>
+
+    <button type="submit">Enter</button>
+  </form>
 
   <script>
-    const playerNamesDiv = document.getElementById('playerNames');
-    let playerCount = 0;
-
-    document.getElementById('playerCount').addEventListener('input', function () {
+    document.getElementById('player-count').addEventListener('input', function() {
       const count = parseInt(this.value);
-      playerCount = count;
-      playerNamesDiv.innerHTML = '';
-      for (let i = 1; i <= count; i++) {
-        const input = document.createElement('input');
-        input.placeholder = `Spieler ${i}`;
-        input.id = `player-${i}`;
-        playerNamesDiv.appendChild(input);
+      const container = document.getElementById('players');
+      container.innerHTML = '';
+      if (!isNaN(count)) {
+        for (let i = 0; i < count; i++) {
+          const label = document.createElement('label');
+          label.textContent = `Spieler ${i + 1} Name:`;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = `player_${i}`;
+          container.appendChild(label);
+          container.appendChild(input);
+        }
       }
     });
 
-    function startGame() {
-      const course = document.getElementById('course').value;
-      const date = document.getElementById('date').value;
-      const trackCount = parseInt(document.getElementById('trackCount').value);
-      const playerNames = [];
-      for (let i = 1; i <= playerCount; i++) {
-        const name = document.getElementById(`player-${i}`).value || `Spieler ${i}`;
-        playerNames.push(name);
+    document.getElementById('start-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const place = e.target.place.value;
+      const date = e.target.date.value;
+      const track_count = parseInt(e.target.tracks.value);
+      const playerCount = parseInt(e.target.players.value);
+
+      const players = [];
+      for (let i = 0; i < playerCount; i++) {
+        const name = e.target[`player_${i}`].value;
+        const scores = {};
+        for (let j = 1; j <= track_count; j++) {
+          scores[j] = 0;  // Default score to 0
+        }
+        players.push({ name, scores });
       }
 
-      document.getElementById('setup').style.display = 'none';
-      document.getElementById('game').style.display = 'block';
-      document.getElementById('gameTitle').innerText = `${course} – ${playerNames.join(', ')}`;
-
-      const table = document.getElementById('scoreTable');
-      table.innerHTML = '';
-      const header = document.createElement('tr');
-      header.innerHTML = '<th>Track</th>' + playerNames.map(name => `<th>${name}</th>`).join('');
-      table.appendChild(header);
-
-      for (let i = 1; i <= trackCount; i++) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>Track ${i}</td>` + playerNames.map((_, idx) => `<td><input type="text" inputmode="numeric" pattern="[0-9]*" data-player="${idx}" data-track="${i}" oninput="calculateTotals()"></td>`).join('');
-        table.appendChild(row);
-      }
-
-      const totalRow = document.createElement('tr');
-      totalRow.innerHTML = '<td>Total:</td>' + playerNames.map(() => `<td class="total"></td>`).join('');
-      table.appendChild(totalRow);
-    }
-
-    function resetGame() {
-      location.reload();
-    }
-
-    function endGame() {
-      const course = document.getElementById('course').value;
-      const date = document.getElementById('date').value;
-      const trackCount = parseInt(document.getElementById('trackCount').value);
-      const table = document.getElementById('scoreTable');
-
-      const players = Array.from(table.rows[0].cells).slice(1).map(cell => cell.innerText);
       const data = {
-        place: course,
-        date: date,
-        track_count: trackCount,
-        players: players.map((name, idx) => {
-          const scores = {};
-          for (let i = 1; i <= trackCount; i++) {
-            const val = table.rows[i].cells[idx + 1].querySelector('input').value;
-            scores[i] = val || 0;
-          }
-          return { name, scores };
-        })
+        place,
+        date,
+        track_count,
+        players
       };
 
-      fetch('/save', {
+      const response = await fetch('/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data)
-      }).then(res => {
-        if (res.ok) alert("Spiel gespeichert!");
-        else alert("Fehler beim Speichern.");
       });
-    }
 
-    function calculateTotals() {
-      const table = document.getElementById('scoreTable');
-      const playerCols = table.rows[0].cells.length - 1;
-      const trackRows = table.rows.length - 2;
-      const totals = Array(playerCols).fill(0);
-
-      for (let i = 1; i <= trackRows; i++) {
-        const row = table.rows[i];
-        for (let j = 1; j <= playerCols; j++) {
-          const val = parseInt(row.cells[j].querySelector('input').value);
-          if (!isNaN(val)) totals[j - 1] += val;
-        }
+      const result = await response.json();
+      if (result.status === 'success') {
+        window.location.href = '/history';
+      } else {
+        alert('Fehler beim Speichern: ' + result.message);
       }
-
-      const totalRow = table.rows[table.rows.length - 1];
-      for (let j = 1; j <= playerCols; j++) {
-        totalRow.cells[j].innerText = totals[j - 1];
-      }
-    }
+    });
   </script>
 </body>
 </html>
