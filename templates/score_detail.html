@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Punkte erfassen</title>
+  <style>
+    table { border-collapse: collapse; margin-top: 20px; }
+    td, th { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    input[type="text"], input[type="number"] { width: 60px; }
+    .btn { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Punkte für {{ place }} ({{ date }})</h2>
+
+  <form method="POST" action="/save">
+    <input type="hidden" name="date" value="{{ date }}">
+    <input type="hidden" name="place" value="{{ place }}">
+    <input type="hidden" name="track_count" value="{{ track_count }}">
+    <input type="hidden" name="player_count" value="{{ player_count }}">
+
+    <table>
+      <tr>
+        <th>Track</th>
+        {% for i in range(player_count) %}
+          <th>Spieler {{ i + 1 }}</th>
+        {% endfor %}
+      </tr>
+
+      {% for track in range(1, track_count + 1) %}
+        <tr>
+          <td>{{ track }}</td>
+          {% for i in range(player_count) %}
+            <td><input type="number" name="score_{{ i }}_{{ track }}" min="0" required></td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+
+    <br>
+    {% for i in range(player_count) %}
+      <label>Spieler {{ i + 1 }} Name:</label>
+      <input type="text" name="player_{{ i }}" required><br>
+    {% endfor %}
+
+    <br>
+    <button class="btn" type="submit">✅ Spiel speichern</button>
+  </form>
+
+  <br>
+  <a href="/">⬅️ Zurück</a>
+</body>
+</html>

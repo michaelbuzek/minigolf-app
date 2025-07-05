@@ -15,6 +15,14 @@ db.init_app(app)
 def index():
     return render_template("index.html")
 
+@app.route("/score_input", methods=["POST"])
+def score_input():
+    place = request.form["place"]
+    date = request.form["date"]
+    track_count = int(request.form["track_count"])
+    player_count = int(request.form["player_count"])
+    return render_template("score_input.html", place=place, date=date, track_count=track_count, player_count=player_count)
+
 @app.route("/save", methods=["POST"])
 def save():
     try:

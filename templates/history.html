@@ -1,54 +1,134 @@
+# michael 
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Minigolf History</title>
+  <title>Minigolf Spiel starten</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    h2 { margin-bottom: 1rem; }
-    .game { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
-    .game a { text-decoration: none; color: #333; font-weight: bold; }
-
-    .nav {
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    nav {
       display: flex;
-      justify-content: center;
       gap: 2rem;
       margin-bottom: 2rem;
-      font-size: 1.1rem;
     }
-
-    .nav a {
+    nav a {
       text-decoration: none;
-      color: #000;
+      color: black;
+      font-weight: bold;
     }
-
-    .nav a:hover {
-      text-decoration: underline;
+    nav a:hover {
+      color: darkorange;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    form {
+      max-width: 600px;
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .players-inputs {
+      margin-top: 1rem;
+    }
+    .players-inputs label {
+      display: block;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-
-  <div class="nav">
+  <nav>
     <a href="/">🏠 Home</a>
     <a href="/">➕ Neues Spiel</a>
     <a href="/history">📜 History</a>
-  </div>
+  </nav>
 
-  <h2>Vergangene Spiele</h2>
+  <h1>Minigolf Spiel starten</h1>
 
-  {% if games %}
-    {% for game in games %}
-      <div class="game">
-        <div>📍 Ort: {{ game.place }}</div>
-        <div>📅 Datum: {{ game.date }}</div>
-        <div>🎯 Bahnen: {{ game.track_count }}</div>
-        <div><a href="/game/{{ game.id }}">🔍 Details anzeigen</a></div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p>Keine gespeicherten Spiele gefunden.</p>
-  {% endif %}
+  <form id="start-form">
+    <label>Platz:</label>
+    <input type="text" name="place" value="Bülach">
 
+    <label>Datum:</label>
+    <input type="date" name="date">
+
+    <label>Tracks (Anzahl Bahnen):</label>
+    <input type="number" name="tracks" value="18">
+
+    <label>Spieleranzahl:</label>
+    <input type="number" id="player-count" name="players">
+
+    <div class="players-inputs" id="players"></div>
+
+    <button type="submit">Enter</button>
+  </form>
+
+  <script>
+    document.getElementById('player-count').addEventListener('input', function() {
+      const count = parseInt(this.value);
+      const container = document.getElementById('players');
+      container.innerHTML = '';
+      if (!isNaN(count)) {
+        for (let i = 0; i < count; i++) {
+          const label = document.createElement('label');
+          label.textContent = `Spieler ${i + 1} Name:`;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = `player_${i}`;
+          container.appendChild(label);
+          container.appendChild(input);
+        }
+      }
+    });
+
+    document.getElementById('start-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const place = e.target.place.value;
+      const date = e.target.date.value;
+      const track_count = parseInt(e.target.tracks.value);
+      const playerCount = parseInt(e.target.players.value);
+
+      const players = [];
+      for (let i = 0; i < playerCount; i++) {
+        const name = e.target[`player_${i}`].value;
+        const scores = {};
+        for (let j = 1; j <= track_count; j++) {
+          scores[j] = 0;
+        }
+        players.push({ name, scores });
+      }
+
+      const data = {
+        place,
+        date,
+        track_count,
+        players
+      };
+
+      const response = await fetch('/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        window.location.href = '/history';
+      } else {
+        alert('Fehler beim Speichern: ' + result.message);
+      }
+    });
+  </script>
 </body>
 </html>
