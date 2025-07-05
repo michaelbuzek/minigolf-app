@@ -47,6 +47,12 @@ def history():
     games = Game.query.order_by(Game.id.desc()).all()
     return render_template("history.html", games=games)
 
+@app.route("/initdb")
+def initdb():
+    with app.app_context():
+        db.create_all()
+    return "✅ Datenbank erstellt"
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
