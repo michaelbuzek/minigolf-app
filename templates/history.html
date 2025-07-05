@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Minigolf History</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    h2 { margin-bottom: 1rem; }
+    .game { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+    .game a { text-decoration: none; color: #333; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Vergangene Spiele</h2>
+
+  {% if games %}
+    {% for game in games %}
+      <div class="game">
+        <div>📍 Ort: {{ game.place }}</div>
+        <div>📅 Datum: {{ game.date }}</div>
+        <div>🎯 Bahnen: {{ game.track_count }}</div>
+        <div><a href="/game/{{ game.id }}">🔍 Details anzeigen</a></div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>Keine gespeicherten Spiele gefunden.</p>
+  {% endif %}
+</body>
+</html>
