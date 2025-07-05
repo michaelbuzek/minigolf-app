@@ -2,52 +2,98 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Punkte erfassen</title>
+  <title>Scores eingeben</title>
   <style>
-    table { border-collapse: collapse; margin-top: 20px; }
-    td, th { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    input[type="text"], input[type="number"] { width: 60px; }
-    .btn { margin-top: 20px; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    nav {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    nav a {
+      text-decoration: none;
+      color: black;
+      font-weight: bold;
+    }
+    nav a:hover {
+      color: darkorange;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    th {
+      background-color: #f8f8f8;
+    }
+    input {
+      width: 4rem;
+      text-align: center;
+    }
+    button {
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
+      background-color: darkorange;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: orangered;
+    }
   </style>
 </head>
 <body>
-  <h2>Punkte für {{ place }} ({{ date }})</h2>
+  <nav>
+    <a href="/">🏠 Home</a>
+    <a href="/history">📜 History</a>
+  </nav>
+
+  <h2>Scores eingeben</h2>
 
   <form method="POST" action="/save">
-    <input type="hidden" name="date" value="{{ date }}">
     <input type="hidden" name="place" value="{{ place }}">
+    <input type="hidden" name="date" value="{{ date }}">
     <input type="hidden" name="track_count" value="{{ track_count }}">
-    <input type="hidden" name="player_count" value="{{ player_count }}">
 
     <table>
-      <tr>
-        <th>Track</th>
-        {% for i in range(player_count) %}
-          <th>Spieler {{ i + 1 }}</th>
-        {% endfor %}
-      </tr>
-
-      {% for track in range(1, track_count + 1) %}
+      <thead>
         <tr>
-          <td>{{ track }}</td>
-          {% for i in range(player_count) %}
-            <td><input type="number" name="score_{{ i }}_{{ track }}" min="0" required></td>
+          <th>Bahn</th>
+          {% for player in players %}
+            <th>{{ player }}</th>
           {% endfor %}
         </tr>
-      {% endfor %}
+      </thead>
+      <tbody>
+        {% for track in range(1, track_count + 1) %}
+        <tr>
+          <td>{{ track }}</td>
+          {% for idx in range(players|length) %}
+          <td>
+            <input type="number" name="score_{{ idx }}_{{ track }}" min="0" required>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
 
-    <br>
-    {% for i in range(player_count) %}
-      <label>Spieler {{ i + 1 }} Name:</label>
-      <input type="text" name="player_{{ i }}" required><br>
+    {% for idx, player in enumerate(players) %}
+      <input type="hidden" name="player_{{ idx }}" value="{{ player }}">
     {% endfor %}
+    <input type="hidden" name="player_count" value="{{ players|length }}">
 
-    <br>
-    <button class="btn" type="submit">✅ Spiel speichern</button>
+    <button type="submit">🎯 Spiel speichern</button>
   </form>
-
-  <br>
-  <a href="/">⬅️ Zurück</a>
 </body>
 </html>

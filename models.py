@@ -4,7 +4,7 @@ db = SQLAlchemy()
 
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String(20))
+    date = db.Column(db.String(50))
     place = db.Column(db.String(100))
     track_count = db.Column(db.Integer)
     players = db.relationship('Player', backref='game', cascade="all, delete-orphan")
