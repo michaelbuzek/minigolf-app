@@ -21,25 +21,21 @@
     nav a:hover {
       color: darkorange;
     }
-    h1 {
-      margin-bottom: 1rem;
-    }
     form {
       max-width: 600px;
     }
     input, button {
-      display: block;
       width: 100%;
-      margin-bottom: 1rem;
       padding: 0.5rem;
+      margin-bottom: 1rem;
       font-size: 1rem;
     }
     .players-inputs {
       margin-top: 1rem;
     }
     .players-inputs label {
-      display: block;
       margin-top: 0.5rem;
+      display: block;
     }
   </style>
 </head>
@@ -54,85 +50,73 @@
 
   <form id="start-form">
     <label>Platz:</label>
-    <input type="text" name="place" value="Bülach">
+    <input type="text" name="place" required value="Bülach">
 
     <label>Datum:</label>
     <input type="date" name="date" required>
 
-    <label>Tracks (Anzahl Bahnen):</label>
-    <input type="number" name="tracks" value="18" required>
+    <label>Anzahl Bahnen:</label>
+    <input type="number" name="tracks" required value="18" min="1">
 
-    <label>Spieleranzahl:</label>
-    <input type="number" id="player-count" name="players" required>
+    <label>Anzahl Spieler:</label>
+    <input type="number" id="player-count" name="players" required min="1">
 
-    <div class="players-inputs" id="players"></div>
+    <div id="players" class="players-inputs"></div>
 
     <button type="submit">Enter</button>
   </form>
 
   <script>
-    const playerCountInput = document.getElementById('player-count');
-    const playersDiv = document.getElementById('players');
+    const playerCountInput = document.getElementById("player-count");
+    const playersContainer = document.getElementById("players");
 
-    playerCountInput.addEventListener('input', function () {
-      const count = parseInt(this.value);
-      playersDiv.innerHTML = '';
-      if (!isNaN(count)) {
+    playerCountInput.addEventListener("input", () => {
+      const count = parseInt(playerCountInput.value);
+      playersContainer.innerHTML = "";
+      if (!isNaN(count) && count > 0) {
         for (let i = 0; i < count; i++) {
-          const label = document.createElement('label');
+          const label = document.createElement("label");
           label.textContent = `Spieler ${i + 1} Name:`;
-          const input = document.createElement('input');
-          input.type = 'text';
+          const input = document.createElement("input");
+          input.type = "text";
           input.name = `player_${i}`;
           input.required = true;
-          playersDiv.appendChild(label);
-          playersDiv.appendChild(input);
+          playersContainer.appendChild(label);
+          playersContainer.appendChild(input);
         }
       }
     });
 
-    document.getElementById('start-form').addEventListener('submit', async function (e) {
+    document.getElementById("start-form").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const place = e.target.place.value;
-      const date = e.target.date.value;
-      const track_count = parseInt(e.target.tracks.value);
-      const playerCount = parseInt(e.target.players.value);
+      const form = e.target;
+      const place = form.place.value;
+      const date = form.date.value;
+      const track_count = parseInt(form.tracks.value);
+      const player_count = parseInt(form.players.value);
 
       const players = [];
-      for (let i = 0; i < playerCount; i++) {
-        const name = e.target[`player_${i}`].value;
+      for (let i = 0; i < player_count; i++) {
+        const name = form[`player_${i}`].value;
         const scores = {};
         for (let j = 1; j <= track_count; j++) {
-          scores[j] = 0;
+          scores[j] = 0;  // Standardwert
         }
         players.push({ name, scores });
       }
 
-      const data = {
-        place,
-        date,
-        track_count,
-        players
-      };
+      const response = await fetch("/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ place, date, track_count, players })
+      });
 
-      try {
-        const response = await fetch('/save', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        if (result.status === 'success') {
-          window.location.href = `/score/${result.game_id}`;
-        } else {
-          alert('Fehler beim Speichern: ' + result.message);
-        }
-      } catch (err) {
-        alert('Serverfehler: ' + err.message);
+      const result = await response.json();
+      if (result.status === "success") {
+        window.location.href = result.redirect_url;
+      } else {
+        alert("Fehler beim Speichern: " + result.message);
       }
     });
   </script>
